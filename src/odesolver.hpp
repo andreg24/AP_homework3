@@ -12,6 +12,11 @@
 using namespace Eigen;
 using namespace std;
 
+struct ODESolution {
+  VectorXd t;
+  vector<VectorXd> Y;
+};
+
 class ODESolver {
 private:
   const function<VectorXd(double,VectorXd)> fun; //Function to implement outside the class
@@ -24,34 +29,34 @@ public:
     ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, double t_end, VectorXd y0);
 
     //Runge Kutta 4 method for solving ODEs
-    pair<VectorXd, vector<VectorXd>> RK4(const unsigned int n);
+    ODESolution RK4(const unsigned int n);
 
     //Variation of RK4 that saves the results into a csv
     void RK4_csv(const unsigned int n, const string filename);
 
     //Midpoint method for solving ODEs
-    pair<VectorXd, vector<VectorXd>> midpoint(const unsigned int n);
+    ODESolution midpoint(const unsigned int n);
 
     //Variation of midpoint method that saves the results into a csv
     void midpoint_csv(const unsigned int n, const string filename);
 
     // Forward Euler methord for solving ODEs
-    pair<VectorXd, vector<VectorXd>> euler(const unsigned int n);
+    ODESolution euler(const unsigned int n);
 
     // Variation of euler method that saves the results into a csv
     void euler_csv(const unsigned int n,const string filename);
 
     // Accuracy
-    double accuracy(pair<VectorXd, vector<VectorXd>>& res,const function<VectorXd(double)> analitic);
+    double accuracy(ODESolution& res,const function<VectorXd(double)> analitic);
 
     //Efficiency
     double efficiency(const string method, const unsigned int n);
 
     //Stability
-    pair<double, double> stability(const string method, pair<VectorXd, vector<VectorXd>>& res, const double p);
+    pair<double, double> stability(const string method, ODESolution& res, const double p);
 
     //Convergence
-    double convergence(pair<VectorXd, vector<VectorXd>>& res,const function<VectorXd(double)> analytic_solution);
+    double convergence(ODESolution& res,const function<VectorXd(double)> analytic_solution);
  
 };
 

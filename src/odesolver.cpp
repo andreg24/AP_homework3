@@ -2,7 +2,7 @@
 
 ODESolver::ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, double t_end, VectorXd y0) : fun(fun), t_start(t_start), t_end(t_end), y0(y0) {};
 
-  pair<VectorXd, vector<VectorXd>> ODESolver::RK4(const unsigned int n) {
+  ODESolution ODESolver::RK4(const unsigned int n) {
     const double h = (t_end - t_start)/n; //step height. It is fixed
     VectorXd t(n+1); //vector containing t values each step
     t[0] = t_start; 
@@ -22,10 +22,10 @@ ODESolver::ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, d
       y+=+h/6.0*(k1+2*k2+2*k3+k4);
       Y.push_back(y);
       }
-    pair<VectorXd, vector<VectorXd>> res;
-    res.first = t;
-    res.second =Y;
-    return res; 
+    ODESolution res;
+    res.t = t;
+    res.Y = Y;
+    return res;
   }
 
   void ODESolver::RK4_csv(const unsigned int n,const string filename) {
@@ -69,7 +69,7 @@ ODESolver::ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, d
       }
   }
 
-  pair<VectorXd, vector<VectorXd>> ODESolver::midpoint(const unsigned int n) {
+  ODESolution ODESolver::midpoint(const unsigned int n) {
 
     const double h = (t_end - t_start) / n; //fixed step height
     VectorXd t(n+1);
@@ -85,9 +85,9 @@ ODESolver::ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, d
       y += h * k2;
       Y.push_back(y);
     }
-    pair<VectorXd, vector<VectorXd>> res;
-    res.first = t;
-    res.second =Y;
+    ODESolution res;
+    res.t = t;
+    res.Y = Y;
     return res;
    }
 
@@ -130,7 +130,7 @@ ODESolver::ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, d
 
 }
 
-  pair<VectorXd, vector<VectorXd>> ODESolver::euler(const unsigned int n) {
+  ODESolution ODESolver::euler(const unsigned int n) {
     
     const double h = (t_end - t_start) / n;
     VectorXd t(n+1);
@@ -146,9 +146,9 @@ ODESolver::ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, d
       Y.push_back(y);
     }
 
-    pair<VectorXd, vector<VectorXd>> res;
-    res.first = t;
-    res.second =Y;
+    ODESolution res;
+    res.t = t;
+    res.Y = Y;
     return res;
   }
 
@@ -188,10 +188,10 @@ ODESolver::ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, d
     }
   }
 
-  double ODESolver::accuracy(pair<VectorXd, vector<VectorXd>>& res, const function<VectorXd(double)> analitic) {
+  double ODESolver::accuracy(ODESolution& res, const function<VectorXd(double)> analitic) {
         double max_error = 0.0;
-        const vector<VectorXd>& Y = res.second;
-        const VectorXd& t = res.first;
+        const vector<VectorXd>& Y = res.Y;
+        const VectorXd& t = res.t;
         for (unsigned int i = 0; i < t.size(); ++i) {
             VectorXd y_analitic = analitic(t[i]); // analitic solution
             VectorXd diff = Y[i] - y_analitic; // Difference between analitic and numerical solutions
@@ -244,14 +244,14 @@ ODESolver::ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, d
       }
     };
 
-  pair<double, double> ODESolver::stability(const string method, pair<VectorXd, vector<VectorXd>>& res,const double p){
-    const VectorXd pert = VectorXd::Constant(res.second[0].size(), p);
-    const VectorXd y0_pert=res.second[0]+pert; // initial value perturbed
+  pair<double, double> ODESolver::stability(const string method, ODESolution& res,const double p){
+    const VectorXd pert = VectorXd::Constant(res.Y[0].size(), p);
+    const VectorXd y0_pert=res.Y[0]+pert; // initial value perturbed
 
-    const unsigned int n=res.second.size(); // number of subintervals
+    const unsigned int n=res.Y.size(); // number of subintervals
     // Compute the numerical solver with perturbed initial value
     ODESolver perturbed(fun,t_start,t_end,y0_pert); 
-    pair<VectorXd, vector<VectorXd>> res_pert;  // Computer the numerical solution with the choosen initial value
+    ODESolution res_pert;  // Computer the numerical solution with the choosen initial value
 
       if (method == "RK4") {
           res_pert = perturbed.RK4(n);
@@ -264,8 +264,8 @@ ODESolver::ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, d
       }
 
     double max_error = 0.0;
-    const vector<VectorXd>& Y = res.second; // numerical solution of the original equation
-    const vector<VectorXd>& Y_pert=res_pert.second; // numerical solution of the perturbed equation
+    const vector<VectorXd>& Y = res.Y; // numerical solution of the original equation
+    const vector<VectorXd>& Y_pert=res_pert.Y; // numerical solution of the perturbed equation
         for (unsigned int i = 0; i < n; ++i) {
             VectorXd diff = Y[i] - Y_pert[i]; // difference between the two solutions of the two equations
             double error = diff.norm(); // norm of the error
@@ -277,8 +277,8 @@ ODESolver::ODESolver(function<VectorXd(double, VectorXd)> fun, double t_start, d
     return stab;
     };
 
-  double ODESolver::convergence(pair<VectorXd, vector<VectorXd>>& res, const function<VectorXd(double)> analytic_solution) {
-    const unsigned int n = res.first.size();
+  double ODESolver::convergence(ODESolution& res, const function<VectorXd(double)> analytic_solution) {
+    const unsigned int n = res.Y.size();
     const double h = (t_end - t_start)/n;
     VectorXd h_values(4); // we compute the solver with 4 differnt step height;
     h_values << h, h/2, h/4, h/8; // halved steps
